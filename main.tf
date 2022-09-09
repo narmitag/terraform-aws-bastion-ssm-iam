@@ -43,6 +43,8 @@ resource "aws_ssm_document" "session_manager_prefs" {
 DOC
 }
 
+
+
 resource "aws_security_group" "allow_egress" {
   count       = var.create_security_group ? 1 : 0
   name        = local.name
@@ -55,11 +57,17 @@ resource "aws_security_group" "allow_egress" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-data "template_file" "init" {
-  template = file("${path.module}/cloud_init.init")
-}
+# data "template_file" "init" {
+#   template = file("${path.module}/cloud_init.init")
+# }
 
 ## Creating Launch Configuration
 resource "aws_launch_configuration" "this" {
@@ -68,8 +76,9 @@ resource "aws_launch_configuration" "this" {
   security_groups             = concat(aws_security_group.allow_egress.*.id, var.security_group_ids)
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.this.id
-
-  user_data = data.template_file.init.rendered
+  key_name =  "neil_temp"
+  #user_data = data.template_file.init.rendered
+  user_data = templatefile("${path.module}/cloud_init.init",{})
 
   lifecycle {
     create_before_destroy = true
